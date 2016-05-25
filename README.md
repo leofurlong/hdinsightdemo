@@ -7,4 +7,3 @@ This demo uses publicly available weather data.  This demo contains the followin
 - Script Action to download and load sample weather files from NOAA
 - Hive project in Visual Studio
 - Spark project in IntelliJ
-- 
