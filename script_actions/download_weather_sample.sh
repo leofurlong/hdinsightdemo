@@ -2,7 +2,7 @@
 lhost=$(hostname)
 if [[ $lhost != *"hn0"* ]]
 then
-	exit 1
+	exit 0
 fi
 	
 ##setup directories
