@@ -1,0 +1,121 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion": "0.9.0.0",
+  "parameters": {
+    "clusterName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the HDInsight cluster to create. No special symbols allowed in the name."
+      }
+    },
+    "clusterUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "The user used to log into the HDInsight Portal and submit jobs."
+      }
+    },
+    "clusterPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password for the HDInsight user."
+      }
+    },
+    "clusterSSHUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "The user used to SSH into the cluster nodes."
+      }
+    },
+    "clusterSSHPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password for the HDInsight SSH User."
+      }
+    }
+  },
+  "variables": {
+    "clusterStorageAccountDeployment": "[concat('Microsoft.Storage/storageAccounts/', parameters('clusterName'))]",
+    "clusterDefaultFS": "[concat('wasb://hdi@',parameters('clusterName'),'.blob.core.windows.net')]"
+  },
+  "resources": [
+      {
+        "apiVersion": "2015-03-01-preview",
+        "name": "[parameters('clusterName')]",
+        "type": "Microsoft.HDInsight/clusters",
+        "location": "eastus",
+        "dependsOn": [
+          "[variables('clusterStorageAccountDeployment')]"
+        ],
+        "properties": {
+          "clusterVersion": "3.4",
+          "osType": "Linux",
+          "tier": "standard",
+          "clusterDefinition": {
+            "kind": "spark",
+            "configurations": {
+              "gateway": {
+                "restAuthCredential.isEnabled": true,
+                "restAuthCredential.username": "[parameters('clusterUserName')]",
+                "restAuthCredential.password": "[parameters('clusterPassword')]"
+              },
+              "core-site": {
+                "fs.defaultFS": "[variables('clusterDefaultFS')]",
+                "fs.azure.account.key.jfennessytraining.blob.core.windows.net": "[listKeys(variables('clusterStorageAccountDeployment'), '2015-05-01-preview').key1]"
+              }
+            }
+          },
+          "computeProfile": {
+            "roles": [
+              {
+                "name": "headnode",
+                "minInstanceCount": 1,
+                "targetInstanceCount": 2,
+                "hardwareProfile": {
+                  "vmSize": "Standard_D12_V2"
+                },
+                "osProfile": {
+                  "linuxOperatingSystemProfile": {
+                    "username": "[parameters('clusterSSHUserName')]",
+                    "password": "[parameters('clusterSSHPassword')]"
+                  }
+                },
+                "scriptActions": [
+                  
+                ]
+              },
+              {
+                "name": "workernode",
+                "minInstanceCount": 1,
+                "targetInstanceCount": 2,
+                "hardwareProfile": {
+                  "vmSize": "Standard_D13_V2"
+                },
+                "osProfile": {
+                  "linuxOperatingSystemProfile": {
+                    "username": "[parameters('clusterSSHUserName')]",
+                    "password": "[parameters('clusterSSHPassword')]"
+                  }
+                },
+                "scriptActions": [
+                  {
+                    "name": "LoadNOAAWeatherData",
+                    "uri": "https://raw.githubusercontent.com/joshuafennessy/hdinsightdemo/master/script_actions/download_weather_sample.sh",
+                    "parameters": ""
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[parameters('clusterName')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "eastus",
+            "properties": {
+                "accountType": "Standard_LRS"
+            }
+        }
+    ]
+}
